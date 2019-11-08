@@ -51,6 +51,8 @@ output_path="$(cd "$(dirname "$output_path")"; pwd -P)/$(basename "$output_path"
 inputs_meta="${INPUTS_META:-}"
 outputs_meta="${OUTPUTS_META:-}"
 
+timeout="${TIMEOUT:-30}"
+
 save () {
 for i do printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/" ; done
 echo " "
@@ -59,7 +61,6 @@ echo " "
 load() {
     eval "set -- $1"
 }
-
 
 count_len() {
     char="$1"
@@ -131,7 +132,7 @@ run_job_input() {
         then
             std_in_pre="echo \"$job_in_base\" |"
         else
-            std_in="< $job_in_base"
+            std_in="< \"$job_in_base\""
         fi
     else
         if [ "$content" = "content" ]
@@ -140,6 +141,49 @@ run_job_input() {
         else
             cmd="$cmd $flag \"$job_in_base\""
         fi
+    fi
+}
+
+run_job_output() {
+    n=$(get_from_output "$output" 1) # 1
+    type=$(get_from_output "$output" 2) # out_file
+    flag=$(get_from_output "$output" 3) # -o
+    filename=$(get_from_output "$output" 4) # my_file.txt
+
+    job_out_base="$output_path"
+    if $multiple_outputs
+    then
+        job_out_base="$output_path/$n"
+    fi
+
+    if [ ! -d "$job_out_base" ]
+    then
+        mkdir "$job_out_base"
+    fi
+
+    job_out_base="$job_out_base/$job"
+
+    if [ ! -d "$job_out_base" ]
+    then
+        mkdir "$job_out_base"
+    fi
+    
+    if [ ! "$filename" = "" ]
+    then
+        job_out_base="${job_out_base}/$filename"
+    fi
+
+    if [ "$flag" = "stdout" ]
+    then
+        if [ ! "$std_out" = "" ]
+        then
+            >&2 echo "Multiple stdouts not supported."
+            return 1
+        fi
+
+        std_out="> \"$job_out_base\""
+    else
+        cmd="$cmd $flag \"$job_out_base\""
     fi
 }
 
@@ -170,10 +214,16 @@ run_job() {
         input="$(get_input "$static_inputs" $i)"
         run_job_input || return 1
     done
+    for i in $(seq $num_outputs)
+    do
+        output="$(get_output "$outputs_meta" $i)"
+        run_job_output || return 1
+        sleep 0
+    done
 
-    cmd="$std_in_pre $cmd $std_in"
+    cmd="$std_in_pre $cmd $std_in $std_out"
 
-    >&2 echo eval \'$cmd\'
+    >&2 echo eval "'$cmd'" || return 1
 
     return 0
 }
@@ -218,6 +268,30 @@ get_input() {
     eval echo \${"$n"}
 }
 
+get_from_output() {
+    output="$1"
+    n="$2"
+
+    oIFS="$IFS"
+    IFS=","
+    set -- $output
+    IFS="$oIFS"
+
+    eval echo \${"$n"}
+}
+
+get_output() {
+    outputs="$1"
+    n="$2"
+
+    oIFS="$IFS"
+    IFS=";"
+    set -- $outputs
+    IFS="$oIFS"
+
+    eval echo \${"$n"}
+}
+
 addToInput() {
     input="$1"
 
@@ -251,13 +325,25 @@ do
     addToInput "${i},$(eval echo \${"$i"})"
 done
 
+outputs_meta_copy=""
+oIFS="$IFS"
+IFS=";"
+set -- $outputs_meta
+IFS="$oIFS"
+for i in $(seq $(count_len ";" "$outputs_meta"))
+do
+    outputs_meta_copy="$outputs_meta_copy${i},$(eval echo \${"$i"});"
+done
+
 required_inputs="${required_inputs%?}"
 optional_inputs="${optional_inputs%?}"
 static_inputs="${static_inputs%?}"
+outputs_meta="${outputs_meta_copy%?}"
 
 num_required_inputs="$(count_len ";" "$required_inputs")"
 num_optional_inputs="$(count_len ";" "$optional_inputs")"
 num_static_inputs="$(count_len ";" "$static_inputs")"
+num_outputs="$(count_len ";" "$outputs_meta")"
 
 
 if [ "$num_required_inputs" -eq 0 ] && [ "$num_optional_inputs" -eq 0 ]
@@ -271,10 +357,14 @@ run_job_when_exists() {
 
     for j in $(seq $num_required_inputs)
     do
-        input="$(get_input "$required_inputs" $i)"
+        input="$(get_input "$required_inputs" $j)"
         n=$(get_from_input "$input" 1)
+
+        retry=0
         while [ ! -d "$input_path/$n/$job" ]
         do
+            [ $retry -eq $timeout ] && (>&2 echo "Required Input missing. Timeout.") && return 1
+            retry=$(($retry+1))
             sleep 1
         done
     done
@@ -282,45 +372,28 @@ run_job_when_exists() {
     run_job "$job"
 }
 
-for i in $(seq $num_required_inputs)
-do
-    input="$(get_input "$required_inputs" $i)"
-    n=$(get_from_input "$input" 1)
-    
-    ls -1 "$input_path/$n" | while read -r job
+main() {
+    for i in $(seq $num_required_inputs)
     do
-        run_job_when_exists "$job" || return 1
+        input="$(get_input "$required_inputs" $i)"
+        n=$(get_from_input "$input" 1)
+        
+        ls -1 "$input_path/$n" | while read -r job
+        do
+            run_job_when_exists "$job" || return 1
+        done
     done
-done
 
-for i in $(seq $num_optional_inputs)
-do
-    input="$(get_input "$optional_inputs" $i)"
-    n=$(get_from_input "$input" 1)
-    
-    ls -1 "$input_path/$n" | while read -r job
+    for i in $(seq $num_optional_inputs)
     do
-        run_job_when_exists "$job" || return 1
+        input="$(get_input "$optional_inputs" $i)"
+        n=$(get_from_input "$input" 1)
+        
+        ls -1 "$input_path/$n" | while read -r job
+        do
+            run_job_when_exists "$job" || return 1
+        done
     done
-done
+}
 
-####
-
-# for i in "${!inputs_meta[@]}"
-# do
-#     IFS=',' echo "${inputs_meta[i]}" | read -r -a input_meta 
-#     if [ ! "${input_meta[2]}" = "static" ]
-#     then
-#         for j in "${!inputs_meta[@]}"
-#     fi
-# done
-
-# for i in "${!outputs_meta[@]}"
-# do
-#     IFS=',' echo "${outputs_meta[i]}" | read -r -a output_meta 
-#     output_type="${output_meta[0]}"
-#     output_flag="${output_meta[1]}"
-#     output_file="${output_meta[2]}"
-# done
-
-return 0
+main
