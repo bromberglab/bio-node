@@ -70,17 +70,30 @@ count_len() {
 
 run_job() {
     job="$1"
-    if [ -d "$output_path/$job" ] && [ -d "$output_path/1/$job" ]
-    then
-        exit 0
-    fi
-    echo $outputs_meta $job
+    multiple_inputs=[ ! $(count_len ";" "$inputs_meta") -eq 1 ]
+    multiple_outputs=[ ! $(count_len ";" "$outputs_meta") -eq 1 ]
+
+    for i in $(seq $num_required_inputs)
+    do
+        input="$(get_input "$required_inputs" $i)"
+        n=$(get_from_input "$input" 1) # 1
+        type=$(get_from_input "$input" 2) # num_file
+        flag=$(get_from_input "$input" 3) # -f
+        mode=$(get_from_input "$input" 4) # required
+        content=$(get_from_input "$input" 4) # text
+
+        if [ "$(ls -1 "$job_in_base" | wc -l)" -eq 1 ]; then
+            job_in_base="${job_in_base}/$(ls -1 "$job_in_base")"
+        fi
+    done
+
+    return 0
 }
 
 run_all_jobs_in() {
     ls -1 "$1" | while read -r job
     do
-        run_job "$job" || exit 1
+        run_job "$job" || return 1
     done
 }
 
@@ -158,13 +171,10 @@ num_required_inputs="$(count_len ";" "$required_inputs")"
 num_optional_inputs="$(count_len ";" "$optional_inputs")"
 num_static_inputs="$(count_len ";" "$static_inputs")"
 
-echo $(get_input $static_inputs 1)
-echo $(get_from_input $(get_input $static_inputs 1) 4)
-
 
 if [ "$num_required_inputs" -eq 0 ] && [ "$num_optional_inputs" -eq 0 ]
 then
-    run_all_jobs_in "$input_path/1" && exit 0 || exit 1
+    run_all_jobs_in "$input_path/1"
 fi
 
 
@@ -173,7 +183,7 @@ run_job_when_exists() {
 
     for j in $(seq $num_required_inputs)
     do
-        input="$(get_input "$required_inputs")"
+        input="$(get_input "$required_inputs" $i)"
         n=$(get_from_input "$input" 1)
         while [ ! -d "$input_path/$n/$job" ]
         do
@@ -181,13 +191,13 @@ run_job_when_exists() {
         done
     done
 
-    run_job "$job" && exit 0 || exit 1
+    run_job "$job"
 }
 
 
 for i in $(seq $num_required_inputs)
 do
-    input="$(get_input "$required_inputs")"
+    input="$(get_input "$required_inputs" $i)"
     n=$(get_from_input "$input" 1)
     
     ls -1 "$input_path/$n" | while read -r job
@@ -226,4 +236,4 @@ done
 #     output_file="${output_meta[2]}"
 # done
 
-exit 0
+return 0
