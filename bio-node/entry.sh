@@ -37,7 +37,7 @@
 # # cd "$base_path"
 
 
-# INPUTS_META='text,stdin,required,file;text,-i,static,text'
+# INPUTS_META='text,stdin,required,filename;text,-i,static,content'
 # OUTPUTS_META='file,stdout,out.file;file,-o,out.file'
 
 entrypoint="${PREV_ENTRYPOINT:-}"
@@ -69,19 +69,38 @@ count_len() {
 }
 
 run_job_input() {
-    is_required=$1
-
     n=$(get_from_input "$input" 1) # 1
     type=$(get_from_input "$input" 2) # num_file
     flag=$(get_from_input "$input" 3) # -f
     mode=$(get_from_input "$input" 4) # required
-    content=$(get_from_input "$input" 4) # text
-    filename=$(get_from_input "$input" 5) # my_file.txt
+    content=$(get_from_input "$input" 5) # filename | content
+    filename=$(get_from_input "$input" 6) # my_file.txt
 
-    job_in_base="$input_path/$job"
+    is_required=false
+    [ "$mode" = "required" ] && is_required=true
+    is_static=false
+    [ "$mode" = "static" ] && is_static=true
+
+    job_in_base="$input_path"
     if $multiple_inputs
     then
-        job_in_base="$input_path/$n/$job"
+        job_in_base="$input_path/$n"
+    fi
+
+    if $is_static
+    then
+        if [ "$(ls -1 "$job_in_base" | wc -l)" -gt 1 ]
+        then
+            >&2 echo "Multiple statics not supported."
+            return 1
+        fi
+        if [ "$(ls -1 "$job_in_base" | wc -l)" -eq 0 ]
+        then
+            return 0
+        fi
+        job_in_base="${job_in_base}/$(ls -1 "$job_in_base")"
+    else
+        job_in_base="$job_in_base/$job"
     fi
 
     if [ ! -d "$job_in_base" ]
@@ -102,14 +121,25 @@ run_job_input() {
 
     if [ "$flag" = "stdin" ]
     then
-        if [ ! "$std_in" = "" ]
+        if [ ! "$std_in" = "" ] || [ ! "$std_in_pre" = "" ]
         then
-            >&2 echo "Multiple stdin's not supported."
+            >&2 echo "Multiple stdins not supported."
             return 1
         fi
-        std_in="< $job_in_base"
+
+        if [ "$content" = "filename" ]
+        then
+            std_in_pre="echo \"$job_in_base\" |"
+        else
+            std_in="< $job_in_base"
+        fi
     else
-        cmd="$cmd $flag \"$job_in_base\""
+        if [ "$content" = "content" ]
+        then
+            cmd="$cmd $flag \"$(cat "$job_in_base")\""
+        else
+            cmd="$cmd $flag \"$job_in_base\""
+        fi
     fi
 }
 
@@ -122,19 +152,28 @@ run_job() {
 
     cmd="$entrypoint $command"
     std_in=""
+    std_in_pre=""
+    std_out=""
 
     for i in $(seq $num_required_inputs)
     do
         input="$(get_input "$required_inputs" $i)"
-        run_job_input true || return 1
+        run_job_input || return 1
     done
     for i in $(seq $num_optional_inputs)
     do
         input="$(get_input "$optional_inputs" $i)"
-        run_job_input false || return 1
+        run_job_input || return 1
+    done
+    for i in $(seq $num_static_inputs)
+    do
+        input="$(get_input "$static_inputs" $i)"
+        run_job_input || return 1
     done
 
-    >&2 echo $cmd
+    cmd="$std_in_pre $cmd $std_in"
+
+    >&2 echo eval \'$cmd\'
 
     return 0
 }
@@ -148,7 +187,7 @@ run_all_jobs_in() {
 
 if [ $(count_len ";" "$inputs_meta") -eq 1 ]
 then
-    run_all_jobs_in "$input_path" && exit 0 || exit 1
+    run_all_jobs_in "$input_path" && return 0 || return 1
 fi
 
 static_inputs=""
@@ -250,7 +289,7 @@ do
     
     ls -1 "$input_path/$n" | while read -r job
     do
-        run_job_when_exists "$job" || exit 1
+        run_job_when_exists "$job" || return 1
     done
 done
 
@@ -261,7 +300,7 @@ do
     
     ls -1 "$input_path/$n" | while read -r job
     do
-        run_job_when_exists "$job" || exit 1
+        run_job_when_exists "$job" || return 1
     done
 done
 
