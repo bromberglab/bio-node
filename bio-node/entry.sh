@@ -1,39 +1,5 @@
 #!/usr/bin/env sh
 
-# mkdir /output/1/test
-# echo $0 > /output/1/test/out.txt
-# echo "$@" >> /output/1/test/out.txt
-# echo $PREV_ENTRYPOINT >> /output/1/test/out.txt
-# echo $PREV_COMMAND >> /output/1/test/out.txt
-# echo $INPUTS_META >> /output/1/test/out.txt
-# echo $OUTPUTS_META >> /output/1/test/out.txt
-
-# # TODO: Set your configuration here.
-# run_executable() {
-#     job_in_base="$1"
-#     job_out_base="$2"
-
-#     executable="${base_path}/executable"
-#     if [ "$(ls -1 "$job_in_base" | wc -l)" -eq 1 ]; then
-#         job_in_base="${job_in_base}/$(ls -1 "$job_in_base")"
-#     fi
-
-#     "$executable" $args "$job_in_base/${filename}" > "$job_out_base/${filename}"
-# }
-
-# # args="$@"
-# # base_path="$(pwd)"
-
-# # cd "$input_path"
-
-# # ls -1 | while read id; do
-# #     [ -d "${output_path}" ] || mkdir "${output_path}"
-# #     [ -d "${output_path}/${id}" ] || mkdir "${output_path}/${id}"
-# #     run_executable "${input_path}/${id}" "${output_path}/${id}"
-# # done || return 1
-
-# # cd "$base_path"
-
 # INPUTS_META='text,stdin,required,filename;text,-i,static,content'
 # OUTPUTS_META='file,stdout,out.file;file,-o,out.file'
 
