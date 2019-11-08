@@ -9,8 +9,6 @@
 # echo $OUTPUTS_META >> /output/1/test/out.txt
 
 
-# entrypoint="${PREV_ENTRYPOINT:-}"
-# command="${PREV_COMMAND:-}"
 
 # # TODO: Set your configuration here.
 # run_executable() {
@@ -42,6 +40,8 @@
 # INPUTS_META='text,stdin,required,file;text,-i,static,text'
 # OUTPUTS_META='file,stdout,out.file;file,-o,out.file'
 
+entrypoint="${PREV_ENTRYPOINT:-}"
+command="${PREV_COMMAND:-}"
 
 input_path="${INPUT_PATH:-/input}"
 input_path="$(cd "$(dirname "$input_path")"; pwd -P)/$(basename "$input_path")"
@@ -68,24 +68,73 @@ count_len() {
     echo "${string}" | awk -F"${char}" '{print NF}'
 }
 
+run_job_input() {
+    is_required=$1
+
+    n=$(get_from_input "$input" 1) # 1
+    type=$(get_from_input "$input" 2) # num_file
+    flag=$(get_from_input "$input" 3) # -f
+    mode=$(get_from_input "$input" 4) # required
+    content=$(get_from_input "$input" 4) # text
+    filename=$(get_from_input "$input" 5) # my_file.txt
+
+    job_in_base="$input_path/$job"
+    if $multiple_inputs
+    then
+        job_in_base="$input_path/$n/$job"
+    fi
+
+    if [ ! -d "$job_in_base" ]
+    then
+        $is_required && (>&2 echo "Required input missing.") && return 1
+        return 0
+    fi
+
+    if [ "$(ls -1 "$job_in_base" | wc -l)" -eq 1 ]
+    then
+        job_in_base="${job_in_base}/$(ls -1 "$job_in_base")"
+    else
+        if [ ! "$filename" = "" ]
+        then
+            job_in_base="${job_in_base}/$filename"
+        fi
+    fi
+
+    if [ "$flag" = "stdin" ]
+    then
+        if [ ! "$std_in" = "" ]
+        then
+            >&2 echo "Multiple stdin's not supported."
+            return 1
+        fi
+        std_in="< $job_in_base"
+    else
+        cmd="$cmd $flag \"$job_in_base\""
+    fi
+}
+
 run_job() {
     job="$1"
-    multiple_inputs=[ ! $(count_len ";" "$inputs_meta") -eq 1 ]
-    multiple_outputs=[ ! $(count_len ";" "$outputs_meta") -eq 1 ]
+    multiple_inputs=false
+    [ ! $(count_len ";" "$inputs_meta") -eq 1 ] && multiple_inputs=true
+    multiple_outputs=false
+    [ ! $(count_len ";" "$outputs_meta") -eq 1 ] && multiple_outputs=true
+
+    cmd="$entrypoint $command"
+    std_in=""
 
     for i in $(seq $num_required_inputs)
     do
         input="$(get_input "$required_inputs" $i)"
-        n=$(get_from_input "$input" 1) # 1
-        type=$(get_from_input "$input" 2) # num_file
-        flag=$(get_from_input "$input" 3) # -f
-        mode=$(get_from_input "$input" 4) # required
-        content=$(get_from_input "$input" 4) # text
-
-        if [ "$(ls -1 "$job_in_base" | wc -l)" -eq 1 ]; then
-            job_in_base="${job_in_base}/$(ls -1 "$job_in_base")"
-        fi
+        run_job_input true || return 1
     done
+    for i in $(seq $num_optional_inputs)
+    do
+        input="$(get_input "$optional_inputs" $i)"
+        run_job_input false || return 1
+    done
+
+    >&2 echo $cmd
 
     return 0
 }
@@ -194,7 +243,6 @@ run_job_when_exists() {
     run_job "$job"
 }
 
-
 for i in $(seq $num_required_inputs)
 do
     input="$(get_input "$required_inputs" $i)"
@@ -208,7 +256,7 @@ done
 
 for i in $(seq $num_optional_inputs)
 do
-    input="$(get_input "$optional_inputs")"
+    input="$(get_input "$optional_inputs" $i)"
     n=$(get_from_input "$input" 1)
     
     ls -1 "$input_path/$n" | while read -r job
