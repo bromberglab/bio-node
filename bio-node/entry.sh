@@ -283,9 +283,7 @@ main() {
     param="${ADD_PARAMETERS:-}"
 
     input_path="${INPUT_PATH:-/input}"
-    input_path="$(cd "$(dirname "$input_path")"; pwd -P)/$(basename "$input_path")"
     output_path="${OUTPUT_PATH:-/output}"
-    output_path="$(cd "$(dirname "$output_path")"; pwd -P)/$(basename "$output_path")"
 
     inputs_meta="${INPUTS_META:-}"
     outputs_meta="${OUTPUTS_META:-}"
