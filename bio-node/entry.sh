@@ -172,7 +172,7 @@ run_job() {
         sleep 0
     done || return 1
 
-    cmd="$std_in_pre $cmd $std_in $std_out"
+    cmd="$std_in_pre $cmd $param $std_in $std_out"
 
     echo Running \`$cmd\` ...
     eval "$cmd"
@@ -280,6 +280,7 @@ run_job_when_exists() {
 main() {
     entrypoint="${PREV_ENTRYPOINT:-}"
     command="${PREV_COMMAND:-}"
+    param="${ADD_PARAMETERS:-}"
 
     input_path="${INPUT_PATH:-/input}"
     input_path="$(cd "$(dirname "$input_path")"; pwd -P)/$(basename "$input_path")"
