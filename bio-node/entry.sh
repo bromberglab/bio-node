@@ -174,9 +174,8 @@ run_job() {
 
     cmd="$std_in_pre $cmd $std_in $std_out"
 
-    >&2 echo eval "'$cmd'" || return 1
-
-    return 0
+    echo Running \`$cmd\` ...
+    eval "$cmd"
 }
 
 run_all_jobs_in() {
