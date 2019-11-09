@@ -292,11 +292,6 @@ main() {
 
     timeout="${TIMEOUT:-30}"
 
-    if [ $(count_len ";" "$inputs_meta") -eq 1 ]
-    then
-        run_all_jobs_in "$input_path" && return 0 || return 1
-    fi
-
     static_inputs=""
     required_inputs=""
     optional_inputs=""
@@ -330,6 +325,11 @@ main() {
     num_static_inputs="$(count_len ";" "$static_inputs")"
     num_outputs="$(count_len ";" "$outputs_meta")"
 
+
+    if [ $(count_len ";" "$inputs_meta") -eq 1 ]
+    then
+        run_all_jobs_in "$input_path" && return 0 || return 1
+    fi
 
     if [ "$num_required_inputs" -eq 0 ] && [ "$num_optional_inputs" -eq 0 ]
     then
