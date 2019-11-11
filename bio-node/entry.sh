@@ -140,10 +140,6 @@ run_job_output() {
 
 run_job() {
     job="$1"
-    multiple_inputs=false
-    [ ! $(count_len ";" "$inputs_meta") -eq 1 ] && multiple_inputs=true
-    multiple_outputs=false
-    [ ! $(count_len ";" "$outputs_meta") -eq 1 ] && multiple_outputs=true
     
     cmd="$entrypoint $command"
     std_in=""
@@ -279,7 +275,26 @@ run_job_when_exists() {
         done || return 1
     done || return 1
     
-    run_job "$job"
+    if [ "$k" -eq 0 ]
+    then
+        return 0
+    fi
+    if $multiple_outputs
+    then
+        current_out="$output_path/1"
+    else
+        current_out="$output_path"
+    fi
+    current_out="$current_out/$job"
+    exists_already=true
+    [ -d "$current_out"] || (mkdir "$current_out"; exists_already=false)
+    if ! $exists_already
+    then
+        k=$(($k-1))
+        
+        run_job "$job" || return 1
+    fi
+    return 0
 }
 
 main() {
@@ -298,6 +313,8 @@ main() {
     outputs_meta="${OUTPUTS_META:-}"
     
     timeout="${TIMEOUT:-30}"
+
+    k="${k:--1}"
     
     static_inputs=""
     required_inputs=""
@@ -332,8 +349,12 @@ main() {
     num_static_inputs="$(count_len ";" "$static_inputs")"
     num_outputs="$(count_len ";" "$outputs_meta")"
     
+    multiple_inputs=false
+    [ ! $(count_len ";" "$inputs_meta") -eq 1 ] && multiple_inputs=true
+    multiple_outputs=false
+    [ ! $(count_len ";" "$outputs_meta") -eq 1 ] && multiple_outputs=true
     
-    if [ $(count_len ";" "$inputs_meta") -eq 1 ]
+    if ! $multiple_inputs
     then
         run_all_jobs_in "$input_path" && return 0 || return 1
     fi
@@ -357,17 +378,20 @@ main() {
         done || return 1
     done || return 1
     
-    for i in $(seq $num_optional_inputs)
-    do
-        input="$(get_input "$optional_inputs" $i)"
-        n=$(get_from_input "$input" 1)
-        
-        [ -d "$input_path/$n" ] || mkdir "$input_path/$n"
-        ls -1 "$input_path/$n" | while read -r job
+    if [ "$num_required_inputs" -eq 0 ]
+    then
+        for i in $(seq $num_optional_inputs)
         do
-            run_job_when_exists "$job" || return 1
+            input="$(get_input "$optional_inputs" $i)"
+            n=$(get_from_input "$input" 1)
+            
+            [ -d "$input_path/$n" ] || mkdir "$input_path/$n"
+            ls -1 "$input_path/$n" | while read -r job
+            do
+                run_job_when_exists "$job" || return 1
+            done || return 1
         done || return 1
-    done || return 1
+    fi
 }
 
 main || failure=true
