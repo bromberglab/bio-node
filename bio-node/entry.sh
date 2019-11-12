@@ -3,7 +3,7 @@
 # INPUTS_META='text,stdin,required,filename;text,-i,static,content'
 # OUTPUTS_META='file,stdout,out.file;file,-o,out.file'
 
-random_string()                                               
+random_string()
 {
     cat /dev/urandom | base64 | fold -w ${1:-10} | head -n 1
 }
@@ -147,6 +147,11 @@ run_job() {
     then
         return 0
     fi
+    if [ ! "$i" -eq 0 ]
+    then
+        i=$(($i-1))
+        return 0
+    fi
     if $multiple_outputs
     then
         current_out="$output_path/1"
@@ -157,13 +162,6 @@ run_job() {
 
     [ -d "$current_out" ] && return 0
     mkdir "$current_out"
-
-    s="$(random_string)"
-    [ -f "$current_out/.id" ] && return 0
-    echo $s > "$current_out/.id"
-    sleep 0.1
-    [ -f "$current_out/.id" ] && [ "$s" == "$(cat "$current_out/.id")" ] || return 0
-    rm "$current_out/.id"
     
     k=$(($k-1))
     run_job_checked "$job" || return 1
@@ -330,6 +328,12 @@ main() {
     timeout="${TIMEOUT:-30}"
 
     k="${K:--1}"
+    i="${I:-0}"
+    if [ ! $i -eq 0 ]
+    then
+        i=$(($i*$k))
+    fi
+    # i ^= skip i jobs
     
     static_inputs=""
     required_inputs=""
