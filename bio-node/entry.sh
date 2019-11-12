@@ -150,14 +150,13 @@ run_job() {
         current_out="$output_path"
     fi
     current_out="$current_out/$job"
-    exists_already=true
-    [ -d "$current_out" ] || (mkdir "$current_out"; exists_already=false)
-    if ! $exists_already
-    then
-        k=$(($k-1))
-        
-        run_job_checked "$job" || return 1
-    fi
+
+    [ -d "$current_out" ] && return 0
+    mkdir "$current_out"
+    
+    k=$(($k-1))
+    run_job_checked "$job" || return 1
+
     return 0
 }
 
