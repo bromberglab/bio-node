@@ -151,7 +151,7 @@ run_job() {
     fi
     current_out="$current_out/$job"
     exists_already=true
-    [ -d "$current_out"] || (mkdir "$current_out"; exists_already=false)
+    [ -d "$current_out" ] || (mkdir "$current_out"; exists_already=false)
     if ! $exists_already
     then
         k=$(($k-1))
