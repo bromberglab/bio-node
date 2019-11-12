@@ -139,6 +139,29 @@ run_job_output() {
 }
 
 run_job() {
+    if [ "$k" -eq 0 ]
+    then
+        return 0
+    fi
+    if $multiple_outputs
+    then
+        current_out="$output_path/1"
+    else
+        current_out="$output_path"
+    fi
+    current_out="$current_out/$job"
+    exists_already=true
+    [ -d "$current_out"] || (mkdir "$current_out"; exists_already=false)
+    if ! $exists_already
+    then
+        k=$(($k-1))
+        
+        run_job_checked "$job" || return 1
+    fi
+    return 0
+}
+
+run_job_checked() {
     job="$1"
     
     cmd="$entrypoint $command"
@@ -275,25 +298,7 @@ run_job_when_exists() {
         done || return 1
     done || return 1
     
-    if [ "$k" -eq 0 ]
-    then
-        return 0
-    fi
-    if $multiple_outputs
-    then
-        current_out="$output_path/1"
-    else
-        current_out="$output_path"
-    fi
-    current_out="$current_out/$job"
-    exists_already=true
-    [ -d "$current_out"] || (mkdir "$current_out"; exists_already=false)
-    if ! $exists_already
-    then
-        k=$(($k-1))
-        
-        run_job "$job" || return 1
-    fi
+    run_job "$job" || return 1
     return 0
 }
 
@@ -314,7 +319,7 @@ main() {
     
     timeout="${TIMEOUT:-30}"
 
-    k="${k:--1}"
+    k="${K:--1}"
     
     static_inputs=""
     required_inputs=""
