@@ -143,13 +143,15 @@ run_job_output() {
 }
 
 run_job() {
+    job="$1"
+
     if [ "$k" -eq 0 ]
     then
         return 0
     fi
-    if [ ! "$i" -eq 0 ]
+    if [ ! "$skip" -eq 0 ]
     then
-        i=$(($i-1))
+        skip=$(($skip-1))
         return 0
     fi
     if $multiple_outputs
@@ -160,7 +162,7 @@ run_job() {
     fi
     current_out="$current_out/$job"
 
-    [ -d "$current_out" ] && return 0
+    [ -d "$current_out" ] && echo Duplicate folder, scheduling broke. && return 1
     mkdir "$current_out"
     
     k=$(($k-1))
@@ -328,10 +330,10 @@ main() {
     timeout="${TIMEOUT:-30}"
 
     k="${K:--1}"
-    i="${I:-0}"
-    if [ ! $i -eq 0 ]
+    skip="${I:-0}"
+    if [ ! $skip -eq 0 ]
     then
-        i=$(($i*$k))
+        skip=$(($skip*$k))
     fi
     # i ^= skip i jobs
     
