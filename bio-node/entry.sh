@@ -142,6 +142,33 @@ run_job_output() {
     fi
 }
 
+clear_job_output() {
+    n=$(get_from_output "$output" 1) # 1
+    
+    job_out_base="$output_path"
+    if $multiple_outputs
+    then
+        job_out_base="$output_path/$n"
+    fi
+    
+    if [ ! -d "$job_out_base" ]
+    then
+        return 0
+    fi
+    
+    job_out_base="$job_out_base/$job"
+    
+    if [ ! -d "$job_out_base" ]
+    then
+        return 0
+    fi
+    
+    if [ "$(ls -1 "$job_out_base" | wc -l)" -eq 0 ]
+    then
+        rm -rf "$job_out_base"
+    fi
+}
+
 run_job() {
     job="$1"
 
@@ -198,7 +225,6 @@ run_job_checked() {
     do
         output="$(get_output "$outputs_meta" $i)"
         run_job_output || return 1
-        sleep 0
     done || return 1
     
     cmd="$std_in_pre $cmd $param $std_in $std_out"
@@ -206,10 +232,17 @@ run_job_checked() {
     echo Running \`$cmd\` ...
     eval "$cmd" || failure=true
 
+    for i in $(seq $num_outputs)
+    do
+        output="$(get_output "$outputs_meta" $i)"
+        clear_job_output || return 1
+    done || return 1
+
     if $failure
     then
         return 1
     fi
+    return 0
 }
 
 run_all_jobs_in() {
