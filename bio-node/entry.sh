@@ -196,7 +196,6 @@ clear_job_output() {
         fi
     fi
 
-    fi
     if [ "$(ls -1 "$job_out_base" | wc -l)" -eq 0 ]
     then
         rm -rf "$job_out_base"
