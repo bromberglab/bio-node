@@ -122,6 +122,20 @@ run_job_output() {
     then
         mkdir "$job_out_base"
     fi
+
+    if [ "$flag" = "workingdir" ]
+    then
+        if [ "$filename" = "" ]
+        then
+            if $has_global_workingdir
+            then
+                >&2 echo "Multiple workingdir without filename not supported."
+                return 1
+            fi
+            has_global_workingdir=true
+        fi
+        return 0
+    fi
     
     if [ ! "$filename" = "" ]
     then
@@ -144,6 +158,9 @@ run_job_output() {
 
 clear_job_output() {
     n=$(get_from_output "$output" 1) # 1
+    type=$(get_from_output "$output" 2) # out_file
+    flag=$(get_from_output "$output" 3) # -o
+    filename=$(get_from_output "$output" 4) # my_file.txt
     
     job_out_base="$output_path"
     if $multiple_outputs
@@ -163,6 +180,23 @@ clear_job_output() {
         return 0
     fi
     
+    if [ "$flag" = "workingdir" ]
+    then
+        if [ "$filename" = "" ]
+        then
+            filter_included_in_list "$previous_files" "$(ls -1A)" | while read i
+            do
+                mv "$i" "$job_out_base"
+            done
+        else
+            if [ -f "$filename" ] || [ -d "$filename" ]
+            then
+                mv "$filename" "$job_out_base"
+            fi
+        fi
+    fi
+
+    fi
     if [ "$(ls -1 "$job_out_base" | wc -l)" -eq 0 ]
     then
         rm -rf "$job_out_base"
@@ -198,6 +232,34 @@ run_job() {
     return 0
 }
 
+included_in_list() {
+    line="$1"
+    list="$2"
+    is_in_list=true
+
+    echo "$list" | while read l
+    do
+        if [ "$l" = "$line" ]
+        then
+            return 1
+        fi
+    done || return 0
+    return 1
+}
+
+filter_included_in_list() {
+    list_a="$1" # shorter
+    list_b="$2" # longer
+
+    echo "$list_b" | while read ll
+    do
+        if ! included_in_list "$ll" "$list_a"
+        then
+            echo "$ll"
+        fi
+    done
+}
+
 run_job_checked() {
     job="$1"
     
@@ -205,6 +267,7 @@ run_job_checked() {
     std_in=""
     std_in_pre=""
     std_out=""
+    has_global_workingdir=false
     
     for i in $(seq $num_required_inputs)
     do
@@ -228,6 +291,8 @@ run_job_checked() {
     done || return 1
     
     cmd="$std_in_pre $cmd $param $std_in $std_out"
+
+    previous_files="$(ls -1A)"
     
     echo Running \`$cmd\` ...
     eval "$cmd" || failure=true
@@ -237,6 +302,12 @@ run_job_checked() {
         output="$(get_output "$outputs_meta" $i)"
         clear_job_output || return 1
     done || return 1
+
+    filter_included_in_list "$previous_files" "$(ls -1A)" | while read i
+    do
+        # clean unneeded created files before next run
+        rm -rf "$i"
+    done
 
     if $failure
     then
