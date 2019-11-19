@@ -65,7 +65,7 @@ run_job_input() {
         return 0
     fi
     
-    if [ "$(ls -1 "$job_in_base" | wc -l)" -eq 1 ]
+    if [ "$(ls -1 "$job_in_base" | wc -l)" -eq 1 ] && [ ! "$filename" = "" ]
     then
         job_in_base="${job_in_base}/$(ls -1 "$job_in_base")"
     else
@@ -320,6 +320,11 @@ run_all_jobs_in() {
     do
         run_job "$job" || return 1
     done || return 1
+
+    if [ $(count_len ";" "$inputs_meta") -eq 0 ]
+    then
+        run_job "job" || return 1
+    fi
 }
 
 get_from_input() {
@@ -474,9 +479,9 @@ main() {
     num_outputs="$(count_len ";" "$outputs_meta")"
     
     multiple_inputs=false
-    [ ! $(count_len ";" "$inputs_meta") -eq 1 ] && multiple_inputs=true
+    [ ! $(count_len ";" "$inputs_meta") -le 1 ] && multiple_inputs=true
     multiple_outputs=false
-    [ ! $(count_len ";" "$outputs_meta") -eq 1 ] && multiple_outputs=true
+    [ ! $(count_len ";" "$outputs_meta") -le 1 ] && multiple_outputs=true
     
     if ! $multiple_inputs
     then
