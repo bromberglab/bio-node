@@ -69,7 +69,7 @@ run_job_input() {
     then
         job_in_base="${job_in_base}/$(ls -1 "$job_in_base")"
     else
-        if [ ! "$filename" = "" ]
+        if [ ! "$filename" = "" ] && [ ! "$filename" = '*' ]
         then
             job_in_base="${job_in_base}/$filename"
         fi
