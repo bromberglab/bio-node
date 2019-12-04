@@ -14,7 +14,9 @@ save () {
 }
 
 load() {
+    set -o noglob
     eval "set -- $1"
+    set +o noglob
 }
 
 count_len() {
@@ -333,10 +335,12 @@ get_from_input() {
 
     oIFS="$IFS"
     IFS=","
+    set -o noglob
     set -- $input
+    set +o noglob
     IFS="$oIFS"
 
-    eval echo \${"$n"}
+    eval echo \"\${"$n"}\"
 }
 
 get_input() {
@@ -345,10 +349,12 @@ get_input() {
 
     oIFS="$IFS"
     IFS=";"
+    set -o noglob
     set -- $inputs
+    set +o noglob
     IFS="$oIFS"
 
-    eval echo \${"$n"}
+    eval echo \"\${"$n"}\"
 }
 
 get_from_output() {
@@ -357,10 +363,12 @@ get_from_output() {
 
     oIFS="$IFS"
     IFS=","
+    set -o noglob
     set -- $output
+    set +o noglob
     IFS="$oIFS"
 
-    eval echo \${"$n"}
+    eval echo \"\${"$n"}\"
 }
 
 get_output() {
@@ -369,10 +377,12 @@ get_output() {
 
     oIFS="$IFS"
     IFS=";"
+    set -o noglob
     set -- $outputs
+    set +o noglob
     IFS="$oIFS"
 
-    eval echo \${"$n"}
+    eval echo \"\${"$n"}\"
 }
 
 addToInput() {
@@ -380,7 +390,9 @@ addToInput() {
 
     oIFS="$IFS"
     IFS=","
+    set -o noglob
     set -- $input
+    set +o noglob
     IFS="$oIFS"
 
     type="$4"
@@ -451,7 +463,9 @@ main() {
 
     oIFS="$IFS"
     IFS=";"
+    set -o noglob
     set -- $inputs_meta
+    set +o noglob
     IFS="$oIFS"
     for i in $(seq $(count_len ";" "$inputs_meta"))
     do
@@ -461,7 +475,9 @@ main() {
     outputs_meta_copy=""
     oIFS="$IFS"
     IFS=";"
+    set -o noglob
     set -- $outputs_meta
+    set +o noglob
     IFS="$oIFS"
     for i in $(seq $(count_len ";" "$outputs_meta"))
     do
