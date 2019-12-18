@@ -207,6 +207,7 @@ clear_job_output() {
 run_job() {
     job="$1"
 
+    k="$(get_k)"
     if [ "$k" -eq 0 ]
     then
         return 0
@@ -228,6 +229,7 @@ run_job() {
     mkdir "$current_out"
 
     k=$(($k-1))
+    set_k "$k"
     run_job_checked "$job" || return 1
 
     return 0
@@ -450,6 +452,7 @@ main() {
     timeout="${TIMEOUT:-30}"
 
     k="${K:--1}"
+    set_k "$k"
     skip="${I:-0}"
     if [ ! $skip -eq 0 ]
     then
@@ -538,8 +541,19 @@ main() {
         done || return 1
     fi
 }
+rnd_name="$(random_string 20)"
+set_k () {
+    echo $1 > "/tmp/.k$rnd_name"
+}
+get_k () {
+    cat "/tmp/.k$rnd_name"
+}
+rm_k () {
+    rm "/tmp/.k$rnd_name"
+}
 
 main || failure=true
+rm_k
 
 if $failure
 then
