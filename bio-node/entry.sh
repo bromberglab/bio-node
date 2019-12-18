@@ -5,7 +5,7 @@
 
 random_string()
 {
-    cat /dev/urandom | base64 | fold -w ${1:-10} | head -n 1
+    cat /dev/urandom | base64 | fold -w ${1:-10} | head -n 1 | sed -e 's/[\/\+]/a/g'
 }
 
 save () {
