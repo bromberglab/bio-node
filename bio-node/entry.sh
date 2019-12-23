@@ -225,7 +225,8 @@ run_job() {
     fi
     current_out="$current_out/$job"
 
-    [ -d "$current_out" ] && echo Duplicate folder, scheduling broke. && return 1
+    # [ -d "$current_out" ] && echo Duplicate folder, scheduling broke. && return 1
+    [ -d "$current_out" ] && echo Duplicate folder. && rm -rf "$current_out"
     mkdir "$current_out"
 
     k=$(($k-1))
