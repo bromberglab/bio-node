@@ -195,7 +195,7 @@ runapiflow() {
     pk="$(echo "$result" | jq -r '.pk')"
     numout="$(echo "$result" | jq -r '.outputs')"
 
-    echo Running...
+    echo "Running... ( see https://bio-no.de/#/workflows/$pk )"
     waitforflow $pk
 
     rm -rf "$outputsdir" 2>/dev/null
