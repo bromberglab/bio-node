@@ -161,18 +161,36 @@ runapiflow() {
     apiflow="$1"
     inputsdir="$2"
     outputsdir="$3"
+    noinputs="${4:-false}"
     mainpath="$(pwd)"
+
+    if ! $noinputs
+    then
+        if ! [ -d "$inputsdir" ]
+        then
+            echo "Folder '$inputsdir' does not exist. Exiting."
+            return 1
+        fi
+        if [ "$(ls -1 "$inputsdir" | wc -l)" -eq 0 ]
+        then
+            echo "Folder '$inputsdir' is empty. Exiting."
+            return 1
+        fi
+    fi
 
     echo Running flow $apiflow
 
-    num=0
-    cd "$inputsdir"
-    for file in $(ls -1)
-    do
-        num=$((num+1))
-        uploadfolder "$file" "$apiflow" "i/$num"
-    done
-    cd "$mainpath"
+    if ! $noinputs
+    then
+        num=0
+        cd "$inputsdir"
+        for file in $(ls -1)
+        do
+            num=$((num+1))
+            uploadfolder "$file" "$apiflow" "i/$num"
+        done
+        cd "$mainpath"
+    fi
     result="$(apipost 'v1/api_workflow/run' '{"name":"'"$apiflow"'"}')"
     pk="$(echo "$result" | jq -r '.pk')"
     numout="$(echo "$result" | jq -r '.outputs')"
@@ -191,6 +209,19 @@ runapiflow() {
     echo "Created $numout outputs."
 }
 
+usage() {
+    echo "Usage:"
+    echo " export TOKEN=<token> [--no-inputs]"
+    echo " $0 <api>"
+    echo
+    echo "# If --no-inputs is not set:"
+    echo "#  Make sure that the folder 'inputs' exists"
+    echo "#  and contains one folder per input of the"
+    echo "#  workflow."
+    echo "#  The folder outputs will be overriden with"
+    echo "#  the results of the workflow."
+}
+
 main() {
     for req in curl jq tar
     do
@@ -201,10 +232,39 @@ main() {
         fi
     done
 
+    if [ $# -lt 1 ] || [ "$1" == "--no-inputs" ]
+    then
+        usage
+        return 1
+    fi
+    noinputs="false"
+    if [ $# -gt 1 ] && [ "$2" == "--no-inputs" ]
+    then
+        noinputs="true"
+    fi
+
+    if [ "$(echo ${TOKEN:-} | wc -c)" -lt 2 ]
+    then
+        echo Token missing!
+        echo
+        usage
+        return 1
+    fi
+
+
+
     echo TOKEN="$(echo $TOKEN | sed -E 's/^(.).*(.)$/\1******\2/')"
 
-    curl --fail --silent --show-error -c /tmp/cookies.txt 'https://bio-no.de/api/token_login/' -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}'
-    runapiflow "$1" "inputs" "outputs"
+    curl --fail --silent --show-error -c /tmp/cookies.txt 'https://bio-no.de/api/token_login/' -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}' 2>/dev/null
+
+    auth="$(api 'v1/check_auth' | jq '.authenticated')"
+    if ! $auth
+    then
+        echo Wrong token.
+        return 1
+    fi
+
+    runapiflow "$1" "inputs" "outputs" $noinputs
     rm /tmp/cookies.txt
 }
 
