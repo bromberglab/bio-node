@@ -258,7 +258,7 @@ main() {
     curl --fail --silent --show-error -c /tmp/cookies.txt 'https://bio-no.de/api/token_login/' -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}' 2>/dev/null
 
     auth="$(api 'v1/check_auth' | jq '.authenticated')"
-    if ! $auth
+    if ! [ "$auth" = "true" ]
     then
         echo Wrong token.
         return 1
