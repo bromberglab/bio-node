@@ -211,8 +211,8 @@ runapiflow() {
 
 usage() {
     echo "Usage:"
-    echo " export TOKEN=<token> [--no-inputs]"
-    echo " $0 <api>"
+    echo " export TOKEN=<token>"
+    echo " $0 <api> [--no-inputs]"
     echo
     echo "# If --no-inputs is not set:"
     echo "#  Make sure that the folder 'inputs' exists"
@@ -220,6 +220,12 @@ usage() {
     echo "#  workflow."
     echo "#  The folder outputs will be overriden with"
     echo "#  the results of the workflow."
+    echo "#"
+    echo "# EXAMPLE:"
+    echo "#  $ mkdir -p inputs/1/my.job"
+    echo "#  $ echo TEST > inputs/1/my.job/file.txt"
+    echo "#  $ export TOKEN=nOtArEaLToKeN"
+    echo "#  $ $0 nOtArEaLaPi"
 }
 
 main() {
@@ -234,7 +240,7 @@ main() {
 
     if [ $# -lt 1 ] || [ "$1" == "--no-inputs" ]
     then
-        usage
+        usage "$@"
         return 1
     fi
     noinputs="false"
@@ -247,7 +253,7 @@ main() {
     then
         echo Token missing!
         echo
-        usage
+        usage "$@"
         return 1
     fi
 
