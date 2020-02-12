@@ -212,7 +212,7 @@ runapiflow() {
 usage() {
     echo "Usage:"
     echo " export TOKEN=<token>"
-    echo " $0 <api-key> [--no-inputs]"
+    echo " $0 <api-key> [--no-inputs] [-C directory]"
     echo
     echo "# If --no-inputs is not set:"
     echo "#  Make sure that the folder 'inputs' exists"
@@ -220,6 +220,9 @@ usage() {
     echo "#  workflow."
     echo "#  The folder outputs will be overriden with"
     echo "#  the results of the workflow."
+    echo "# -C:"
+    echo "#  Changes the working directory before"
+    echo "#  execution. Similar to tar -C."
     echo "#"
     echo "# EXAMPLE:"
     echo "#  $ mkdir -p inputs/1/my.job"
@@ -238,15 +241,33 @@ main() {
         fi
     done
 
-    if [ $# -lt 1 ] || [ "$1" == "--no-inputs" ]
+    if [ $# -lt 1 ] || [ "$1" == "--no-inputs" ] || [ "$1" == "-C" ]
     then
         usage "$@"
         return 1
     fi
+
+    apikey="$1"
     noinputs="false"
-    if [ $# -gt 1 ] && [ "$2" == "--no-inputs" ]
+    changeto="$(pwd)"
+    previouswd="$(pwd)"
+
+    shift
+    if [ $# -gt 0 ] && [ "$1" == "--no-inputs" ]
+    then    
+        noinputs="true"
+        shift
+    fi
+    if [ $# -gt 1 ] && [ "$1" == "-C" ]
+    then
+        shift
+        changeto="$1"
+        shift
+    fi
+    if [ $# -gt 0 ] && [ "$1" == "--no-inputs" ]
     then
         noinputs="true"
+        shift
     fi
 
     if [ "$(echo ${TOKEN:-} | wc -c)" -lt 2 ]
@@ -256,7 +277,6 @@ main() {
         usage "$@"
         return 1
     fi
-
 
 
     echo TOKEN="$(echo $TOKEN | sed -E 's/^(.).*(.)$/\1******\2/')"
@@ -270,7 +290,9 @@ main() {
         return 1
     fi
 
-    runapiflow "$1" "inputs" "outputs" $noinputs
+    cd "$changeto"
+    runapiflow "$apikey" "inputs" "outputs" $noinputs
+    cd "$previouswd"
     rm /tmp/cookies.txt
 }
 
