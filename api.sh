@@ -212,7 +212,7 @@ runapiflow() {
 usage() {
     echo "Usage:"
     echo " export TOKEN=<token>"
-    echo " $0 <api> [--no-inputs]"
+    echo " $0 <api-key> [--no-inputs]"
     echo
     echo "# If --no-inputs is not set:"
     echo "#  Make sure that the folder 'inputs' exists"
@@ -224,8 +224,8 @@ usage() {
     echo "# EXAMPLE:"
     echo "#  $ mkdir -p inputs/1/my.job"
     echo "#  $ echo TEST > inputs/1/my.job/file.txt"
-    echo "#  $ export TOKEN=nOtArEaLToKeN"
-    echo "#  $ $0 nOtArEaLaPi"
+    echo "#  $ export TOKEN=sometoken"
+    echo "#  $ $0 someapikey"
 }
 
 main() {
