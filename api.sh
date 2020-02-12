@@ -212,7 +212,7 @@ runapiflow() {
 usage() {
     echo "Usage:"
     echo " export TOKEN=<token>"
-    echo " $0 <api-key> [--no-inputs] [-C directory]"
+    echo " $0 <api-key> [--no-inputs] [inputs-dir] [outputs-dir]"
     echo
     echo "# If --no-inputs is not set:"
     echo "#  Make sure that the folder 'inputs' exists"
@@ -220,13 +220,15 @@ usage() {
     echo "#  workflow."
     echo "#  The folder outputs will be overriden with"
     echo "#  the results of the workflow."
-    echo "# -C:"
-    echo "#  Changes the working directory before"
-    echo "#  execution. Similar to tar -C."
+    echo "#"
+    echo "# Default inputs:"
+    echo "#  ./inputs"
+    echo "# Default outputs:"
+    echo "#  ./outputs"
     echo "#"
     echo "# EXAMPLE:"
-    echo "#  $ mkdir -p inputs/1/my.job"
-    echo "#  $ echo TEST > inputs/1/my.job/file.txt"
+    echo "#  $ mkdir -p ./inputs/1/my.job"
+    echo "#  $ echo TEST > ./inputs/1/my.job/file.txt"
     echo "#  $ export TOKEN=sometoken"
     echo "#  $ $0 someapikey"
 }
@@ -241,27 +243,28 @@ main() {
         fi
     done
 
-    if [ $# -lt 1 ] || [ "$1" == "--no-inputs" ] || [ "$1" == "-C" ]
+    if [ $# -lt 1 ] || [ "$1" == "--no-inputs" ]
     then
         usage "$@"
         return 1
     fi
 
     apikey="$1"
-    noinputs="false"
-    changeto="$(pwd)"
-    previouswd="$(pwd)"
-
     shift
+    noinputs="false"
+    inputsdir="./inputs"
+    outputsdir="./outputs"
+
     if [ $# -gt 0 ] && [ "$1" == "--no-inputs" ]
     then    
         noinputs="true"
         shift
     fi
-    if [ $# -gt 1 ] && [ "$1" == "-C" ]
+    if [ $# -gt 1 ]
     then
+        inputsdir="$1"
         shift
-        changeto="$1"
+        outputsdir="$1"
         shift
     fi
     if [ $# -gt 0 ] && [ "$1" == "--no-inputs" ]
@@ -290,9 +293,7 @@ main() {
         return 1
     fi
 
-    cd "$changeto"
-    runapiflow "$apikey" "inputs" "outputs" $noinputs
-    cd "$previouswd"
+    runapiflow "$apikey" "$inputsdir" "$outputsdir" $noinputs
     rm /tmp/cookies.txt
 }
 
