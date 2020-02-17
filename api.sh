@@ -115,7 +115,7 @@ download() {
 uploadfolder() {
     folder="$1"
     rm "$folder/.DS_Store" 2>/dev/null
-    if [ $(find "$folder" -type f -maxdepth 1 | wc -l) -eq 0 ]
+    if [ $(find "$folder" -maxdepth 1 -type f | wc -l) -eq 0 ]
     then
         hasfiles="false"
     else
