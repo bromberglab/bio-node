@@ -1,12 +1,24 @@
 #!/bin/sh
 
 debugprintout=false
+domain="https://bio-no.de"
+
+safecurl() {
+    # detect 502
+    if ! [ "$(curl -s -o /dev/null -w "%{http_code}" "$domain/api/.commit/")" = "200" ]
+    then
+        sleep 10
+        safecurl "$@" || return 1
+        return 0
+    fi
+    curl "$@"
+}
 
 api() {
-    path="https://bio-no.de/api/$1/"
+    path="$domain/api/$1/"
     $debugprintout && (echo ">curl $path">&2)
     shift
-    curl --fail --silent --show-error -b /tmp/cookies.txt "$path" "$@"
+    safecurl --fail --silent --show-error -b /tmp/cookies.txt "$path" "$@"
     # $debugprintout && (echo ^curl --fail --silent --show-error -b /tmp/cookies.txt "$path" "$@">&2)
 }
 apipost() {
@@ -109,7 +121,7 @@ download() {
     fi
 
     url="$(apipost 'v1/create_download' '{"name":"'"$downloadname"'","type":"'"$downloadtype"'"}' | jq -r '.url')"
-    curl -L --fail --silent --show-error -b /tmp/cookies.txt -o "$outputfile" "$url"
+    safecurl -L --fail --silent --show-error -b /tmp/cookies.txt -o "$outputfile" "$url"
 }
 
 uploadfolder() {
@@ -195,7 +207,7 @@ runapiflow() {
     pk="$(echo "$result" | jq -r '.pk')"
     numout="$(echo "$result" | jq -r '.outputs')"
 
-    echo "Running... ( see https://bio-no.de/#/workflows/$pk )"
+    echo "Running... ( see $domain/#/workflows/$pk )"
     waitforflow $pk
 
     rm -rf "$outputsdir" 2>/dev/null
@@ -284,7 +296,7 @@ main() {
 
     echo TOKEN="$(echo $TOKEN | sed -E 's/^(.).*(.)$/\1******\2/')"
 
-    curl --fail --silent --show-error -c /tmp/cookies.txt 'https://bio-no.de/api/token_login/' -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}' 2>/dev/null
+    safecurl --fail --silent --show-error -c /tmp/cookies.txt "$domain/api/token_login/" -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}' 2>/dev/null
 
     auth="$(api 'v1/check_auth' | jq '.authenticated')"
     if ! [ "$auth" = "true" ]
