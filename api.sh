@@ -255,7 +255,7 @@ main() {
         fi
     done
 
-    if [ $# -lt 1 ] || [ "$1" == "--no-inputs" ]
+    if [ "$#" -lt 1 ] || [ "$1" = "--no-inputs" ]
     then
         usage "$@"
         return 1
@@ -267,19 +267,19 @@ main() {
     inputsdir="./inputs"
     outputsdir="./outputs"
 
-    if [ $# -gt 0 ] && [ "$1" == "--no-inputs" ]
+    if [ "$#" -gt 0 ] && [ "$1" = "--no-inputs" ]
     then    
         noinputs="true"
         shift
     fi
-    if [ $# -gt 1 ]
+    if [ "$#" -gt 1 ]
     then
         inputsdir="$1"
         shift
         outputsdir="$1"
         shift
     fi
-    if [ $# -gt 0 ] && [ "$1" == "--no-inputs" ]
+    if [ "$#" -gt 0 ] && [ "$1" = "--no-inputs" ]
     then
         noinputs="true"
         shift
