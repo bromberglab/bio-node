@@ -3,6 +3,12 @@
 debugprintout=false
 domain="https://bio-no.de"
 
+random_string()
+{
+    cat /dev/urandom | base64 | fold -w ${1:-10} | head -n 1 | sed -e 's/[\/\+]/a/g'
+}
+SEED="$(random_string)"
+
 safecurl() {
     # detect 502
     if ! [ "$(curl -s -o /dev/null -w "%{http_code}" "$domain/api/.commit/")" = "200" ]
@@ -18,9 +24,10 @@ api() {
     path="$domain/api/$1/"
     $debugprintout && (echo ">curl $path">&2)
     shift
-    safecurl --fail --silent --show-error -b /tmp/cookies.txt "$path" "$@"
-    # $debugprintout && (echo ^curl --fail --silent --show-error -b /tmp/cookies.txt "$path" "$@">&2)
+    safecurl --fail --silent --show-error -b "/tmp/cookies$SEED.txt" "$path" "$@"
+    # $debugprintout && (echo ^curl --fail --silent --show-error -b "/tmp/cookies$SEED.txt" "$path" "$@">&2)
 }
+
 apipost() {
     $debugprintout && (echo ">post $2">&2)
     api "$1" -H 'content-type: application/json;charset=UTF-8' --data-binary "$2"
@@ -121,7 +128,7 @@ download() {
     fi
 
     url="$(apipost 'v1/create_download' '{"name":"'"$downloadname"'","type":"'"$downloadtype"'"}' | jq -r '.url')"
-    safecurl -L --fail --silent --show-error -b /tmp/cookies.txt -o "$outputfile" "$url"
+    safecurl -L --fail --silent --show-error -b "/tmp/cookies$SEED.txt" -o "$outputfile" "$url"
 }
 
 uploadfolder() {
@@ -165,7 +172,7 @@ waitforflow() {
     sleep 1
     while [ "$(api 'v1/workflows/'"$num" | jq '.finished')" = "false" ]
     do
-        sleep 3
+        sleep 10
     done
 }
 
@@ -299,7 +306,7 @@ main() {
 
     echo TOKEN="$(echo $TOKEN | sed -E 's/^(.).*(.)$/\1******\2/')"
 
-    safecurl --fail --silent --show-error -c /tmp/cookies.txt "$domain/api/token_login/" -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}' 2>/dev/null
+    safecurl --fail --silent --show-error -c "/tmp/cookies$SEED.txt" "$domain/api/token_login/" -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}' 2>/dev/null
 
     auth="$(api 'v1/check_auth' | jq '.authenticated')"
     if ! [ "$auth" = "true" ]
@@ -309,7 +316,7 @@ main() {
     fi
 
     runapiflow "$apikey" "$inputsdir" "$outputsdir" $noinputs
-    rm /tmp/cookies.txt
+    rm "/tmp/cookies$SEED.txt"
 }
 
 main "$@"
