@@ -226,6 +226,9 @@ usage() {
     echo " export TOKEN=<token>"
     echo " $0 <api-key> [--no-inputs] [inputs-dir] [outputs-dir]"
     echo
+    echo "# WARNING"
+    echo "#  Every API key can only be once at a time. Wait for the execution to finish before you run the API again."
+    echo "#"
     echo "# If --no-inputs is not set:"
     echo "#  Make sure that the folder 'inputs' exists"
     echo "#  and contains one folder per input of the"
