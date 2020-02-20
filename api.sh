@@ -2,7 +2,7 @@
 
 debugprintout=false
 DOMAIN="${BIONODE_DOMAIN:-https://bio-no.de}"
-SYMLINK_DEREF=`[[ ! -z ${BIONODE_SYMLINK+x} ]] && [[ "${BIONODE_SYMLINK}" -eq 1 ]] && echo "h"`
+SYMLINK_DEREF=`[ "${BIONODE_SYMLINK:-0}" -eq 1 ] && echo "h"`
 
 random_string()
 {
