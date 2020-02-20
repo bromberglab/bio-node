@@ -12,13 +12,13 @@ SEED="$(random_string)"
 
 safecurl() {
     # detect 502
-    if ! [ "$(curl -s -o /dev/null -w "%{http_code}" "$DOMAIN/api/.commit/")" = "200" ]
+    if ! [ "$(timeout 60 curl -s -o /dev/null -w "%{http_code}" "$DOMAIN/api/.commit/")" = "200" ]
     then
         sleep 10
         safecurl "$@" || return 1
         return 0
     fi
-    curl "$@"
+    timeout 60 curl "$@"
 }
 
 api() {
@@ -257,11 +257,21 @@ usage() {
 }
 
 main() {
-    for req in curl jq tar
+    timeout=timeout
+    which gtimeout >/dev/null 2>&1 && timeout=gtimeout
+
+    for req in curl jq tar $timeout
     do
         if !(which $req>/dev/null)
         then
-            echo $req required.
+            echo Installation of $req required.
+
+            if [ "$req" = "$timeout" ]
+            then
+                echo "On macOS:"
+                echo " $> brew install coreutils"
+            fi
+
             return 1
         fi
     done
