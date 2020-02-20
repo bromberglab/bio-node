@@ -1,7 +1,8 @@
 #!/bin/sh
 
 debugprintout=false
-domain="https://bio-no.de"
+domain="${BIONODE_DOMAIN:-https://bio-no.de}"
+symlink_deref=`[[ ! -z ${BIONODE_SYMLINK+x} ]] && [[ "${BIONODE_SYMLINK}" -eq 1 ]] && echo "h"`
 
 random_string()
 {
@@ -149,7 +150,7 @@ uploadfolder() {
 
     oldpath="$(pwd)"
     cd "$folder"
-    tar czf tmp.upload.tar.gz *
+    tar cz${symlink_deref}f tmp.upload.tar.gz *
     sendfile tmp.upload.tar.gz
     rm tmp.upload.tar.gz
     cd "$oldpath"
