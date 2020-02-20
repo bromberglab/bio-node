@@ -1,8 +1,8 @@
 #!/bin/sh
 
 debugprintout=false
-domain="${BIONODE_DOMAIN:-https://bio-no.de}"
-symlink_deref=`[[ ! -z ${BIONODE_SYMLINK+x} ]] && [[ "${BIONODE_SYMLINK}" -eq 1 ]] && echo "h"`
+DOMAIN="${BIONODE_DOMAIN:-https://bio-no.de}"
+SYMLINK_DEREF=`[[ ! -z ${BIONODE_SYMLINK+x} ]] && [[ "${BIONODE_SYMLINK}" -eq 1 ]] && echo "h"`
 
 random_string()
 {
@@ -12,7 +12,7 @@ SEED="$(random_string)"
 
 safecurl() {
     # detect 502
-    if ! [ "$(curl -s -o /dev/null -w "%{http_code}" "$domain/api/.commit/")" = "200" ]
+    if ! [ "$(curl -s -o /dev/null -w "%{http_code}" "$DOMAIN/api/.commit/")" = "200" ]
     then
         sleep 10
         safecurl "$@" || return 1
@@ -22,7 +22,7 @@ safecurl() {
 }
 
 api() {
-    path="$domain/api/$1/"
+    path="$DOMAIN/api/$1/"
     $debugprintout && (echo ">curl $path">&2)
     shift
     safecurl --fail --silent --show-error -b "/tmp/cookies$SEED.txt" "$path" "$@"
@@ -150,7 +150,7 @@ uploadfolder() {
 
     oldpath="$(pwd)"
     cd "$folder"
-    tar cz${symlink_deref}f tmp.upload.tar.gz *
+    tar cz${SYMLINK_DEREF}f tmp.upload.tar.gz *
     sendfile tmp.upload.tar.gz
     rm tmp.upload.tar.gz
     cd "$oldpath"
@@ -215,7 +215,7 @@ runapiflow() {
     pk="$(echo "$result" | jq -r '.pk')"
     numout="$(echo "$result" | jq -r '.outputs')"
 
-    echo "Running... ( see $domain/#/workflows/$pk )"
+    echo "Running... ( see $DOMAIN/#/workflows/$pk )"
     waitforflow $pk
 
     rm -rf "$outputsdir" 2>/dev/null
@@ -307,7 +307,7 @@ main() {
 
     echo TOKEN="$(echo $TOKEN | sed -E 's/^(.).*(.)$/\1******\2/')"
 
-    safecurl --fail --silent --show-error -c "/tmp/cookies$SEED.txt" "$domain/api/token_login/" -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}' 2>/dev/null
+    safecurl --fail --silent --show-error -c "/tmp/cookies$SEED.txt" "$DOMAIN/api/token_login/" -H 'content-type: application/json;charset=UTF-8' --data-binary '{"token":"'"$TOKEN"'"}' 2>/dev/null
 
     auth="$(api 'v1/check_auth' | jq '.authenticated')"
     if ! [ "$auth" = "true" ]
