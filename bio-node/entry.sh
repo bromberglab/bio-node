@@ -31,7 +31,7 @@ run_job_input() {
     type=$(get_from_input "$input" 2) # num_file
     flag=$(get_from_input "$input" 3) # -f
     mode=$(get_from_input "$input" 4) # required
-    content=$(get_from_input "$input" 5) # filename | content
+    content=$(get_from_input "$input" 5) # filename | content | unquote content
     filename=$(get_from_input "$input" 6) # my_file.txt
 
     is_required=false
@@ -95,6 +95,9 @@ run_job_input() {
         if [ "$content" = "content" ]
         then
             cmd="$cmd $flag \"$(cat "$job_in_base")\""
+        elif [ "$content" = "unquote content" ] || [ "$content" = "unquotecontent" ] || [ "$content" = "unquote_content" ]
+        then
+            cmd="$cmd $flag $(cat "$job_in_base")"
         else
             cmd="$cmd $flag \"$job_in_base\""
         fi
