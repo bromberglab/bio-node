@@ -18,7 +18,7 @@ safecurl() {
         safecurl "$@" || return 1
         return 0
     fi
-    timeout 60 curl "$@"
+    timeout 60 curl "$@" || safecurl "$@"
 }
 
 api() {
