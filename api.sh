@@ -10,7 +10,14 @@ random_string()
 }
 SEED="$(random_string)"
 
+safecurltries=5
 safecurl() {
+    safecurltries=$((safecurltries-1))
+    if [ "$safecurltries" -lt 0 ]
+    then
+        safecurltries=5
+        return 1
+    fi
     # detect 502
     if ! [ "$(timeout 60 curl -s -o /dev/null -w "%{http_code}" "$DOMAIN/api/.commit/")" = "200" ]
     then
@@ -18,7 +25,12 @@ safecurl() {
         safecurl "$@" || return 1
         return 0
     fi
-    timeout 60 curl "$@" || safecurl "$@"
+    if timeout 60 curl "$@"
+    then
+        safecurltries=5
+        return 0
+    fi
+    safecurl "$@" || return 1
 }
 
 api() {
