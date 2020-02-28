@@ -124,6 +124,7 @@ sendfile() {
     for file in $(ls -1)
     do
         chunk=$((chunk+1))
+        echo Send chunk $chunk ...
         sendchunk $file $chunk $totalchunks "$(basename "$path")"
     done
 
@@ -149,6 +150,7 @@ uploadfolder() {
 
     oldpath="$(pwd)"
     cd "$folder"
+    echo Tar ...
     tar cz${SYMLINK_DEREF}f tmp.upload.tar.gz *
     sendfile tmp.upload.tar.gz
     rm tmp.upload.tar.gz
