@@ -156,14 +156,15 @@ uploadfolder() {
     rm tmp.upload.tar.gz
     cd "$oldpath"
     
-    sleep 5
-    echo Finish ...
-    apipost 'v1/finish_upload' '{"extract":true}' >/dev/null
-    sleep 1
+    sleep 3
+    echo Reassembling ...
     while ! [ "$(api 'v1/my_upload' | jq '.reassembling')" = "false" ]
     do
         sleep 3
     done
+    echo Finish ...
+    apipost 'v1/finish_upload' '{"extract":true}' >/dev/null
+    sleep 1
     while ! [ "$(api 'v1/my_upload' | jq '.extracting')" = "false" ]
     do
         sleep 3
