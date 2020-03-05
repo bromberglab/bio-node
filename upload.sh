@@ -125,7 +125,29 @@ sendfile() {
     do
         chunk=$((chunk+1))
         echo Send chunk $chunk ...
-        sendchunk $file $chunk $totalchunks "$(basename "$path")"
+
+        oldsafecurltries=$safecurltries
+        chunkretries=$safecurltries
+        safecurltries=1
+
+        while [ $chunkretries -gt 0 ]
+        do
+            chunkretries=$((chunkretries-1))
+            sendchunk $file $chunk $totalchunks "$(basename "$path")"
+            if [ $? -eq 0 ]
+            then
+                chunkretries=-1
+            else
+                if ! [ $chunkretries -gt 0 ]
+                then
+                    safecurltries=$oldsafecurltries
+                    echo Send chunk failed.
+                    return 1
+                fi
+            fi
+        done
+
+        safecurltries=$oldsafecurltries
     done
 
     cd ..
