@@ -10,12 +10,13 @@ random_string()
 }
 SEED="$(random_string)"
 
-safecurltries=5
+maxsafecurltries=5
+safecurltries=$maxsafecurltries
 safecurl() {
     safecurltries=$((safecurltries-1))
     if [ "$safecurltries" -lt 0 ]
     then
-        safecurltries=5
+        safecurltries=$maxsafecurltries
         return 1
     fi
     # detect 502
@@ -27,7 +28,7 @@ safecurl() {
     fi
     if timeout 60 curl "$@"
     then
-        safecurltries=5
+        safecurltries=$maxsafecurltries
         return 0
     fi
     safecurl "$@" || return 1
@@ -128,11 +129,11 @@ sendfile() {
 
         oldsafecurltries=$safecurltries
         chunkretries=$safecurltries
-        safecurltries=1
 
         while [ $chunkretries -gt 0 ]
         do
             chunkretries=$((chunkretries-1))
+            safecurltries=1
             sendchunk $file $chunk $totalchunks "$(basename "$path")"
             if [ $? -eq 0 ]
             then
