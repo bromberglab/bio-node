@@ -234,9 +234,13 @@ run_job() {
 
     k=$(($k-1))
     set_k "$k"
-    run_job_checked "$job" || return 1
+    if run_job_checked "$job"
+    then
+        return 0
+    fi
 
-    return 0
+    rm -rf "$current_out"
+    return 1
 }
 
 included_in_list() {
