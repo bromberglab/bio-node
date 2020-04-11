@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/bin/sh
 
 # INPUTS_META='text,stdin,required,filename;text,-i,static,content'
 # OUTPUTS_META='file,stdout,out.file;file,-o,out.file'
