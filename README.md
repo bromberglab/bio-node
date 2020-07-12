@@ -2,6 +2,8 @@
 
 ## For Documentation, see [this](https://github.com/bromberglab/bio-node-docs) repo.
 
+## For Installation, use [this](https://github.com/bromberglab/bio-node-webserver/blob/master/create-deployment.sh) script.
+
 ### Further Links
 
 Website: https://bio-no.de  
